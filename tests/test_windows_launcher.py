@@ -1,5 +1,6 @@
 import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -23,25 +24,28 @@ class WindowsLauncherContractTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows-only launcher check")
     def test_check_only_runs_backend_doctor(self) -> None:
-        result = subprocess.run(
-            [
-                "powershell.exe",
-                "-NoLogo",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                str(ROOT / "start-dashboard.ps1"),
-                "-CheckOnly",
-            ],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=30,
-            check=False,
-        )
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "sessions").mkdir()
+            result = subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(ROOT / "start-dashboard.ps1"),
+                    "-CheckOnly",
+                ],
+                cwd=ROOT,
+                env={**os.environ, "CODEX_HOME": folder},
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+                check=False,
+            )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertRegex(result.stdout, r"Using (?:Codex bundled )?Python")
         self.assertIn('"status": "ok"', result.stdout)
