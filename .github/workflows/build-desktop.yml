@@ -1,0 +1,58 @@
+name: Build desktop apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+      - name: Build Windows portable app
+        shell: pwsh
+        run: ./build-portable.ps1 -Python python -OutputDirectory "$env:RUNNER_TEMP\release"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodexTokenDashboard-Windows-x64
+          path: ${{ runner.temp }}/release/*.zip
+          if-no-files-found: error
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        run: python3 -m pip install -r requirements-build.txt
+      - name: Build macOS app
+        run: sh build-macos.sh "$RUNNER_TEMP/release"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodexTokenDashboard-Mac-${{ matrix.architecture }}
+          path: |
+            ${{ runner.temp }}/release/*.zip
+            ${{ runner.temp }}/release/*.sha256
+          if-no-files-found: error

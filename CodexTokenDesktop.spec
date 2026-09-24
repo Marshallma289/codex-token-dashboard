@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+
+is_macos = sys.platform == 'darwin'
+hidden_imports = ['webview', 'webview.platforms.cocoa'] if is_macos else [
+    'webview', 'webview.platforms.edgechromium', 'webview.platforms.winforms'
+]
 
 a = Analysis(
     ['desktop.py'],
     pathex=[],
     binaries=[],
     datas=[('web', 'web')],
-    hiddenimports=['webview', 'webview.platforms.edgechromium', 'webview.platforms.winforms'],
+    hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -30,7 +36,7 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    icon='assets/app-icon.ico',
+    icon=None if is_macos else 'assets/app-icon.ico',
     codesign_identity=None,
     entitlements_file=None,
 )
@@ -43,3 +49,16 @@ coll = COLLECT(
     upx_exclude=[],
     name='CodexTokenDesktop',
 )
+
+if is_macos:
+    app = BUNDLE(
+        coll,
+        name='CodexTokenDesktop.app',
+        icon=None,
+        bundle_identifier='com.marshallma289.codextokendashboard',
+        info_plist={
+            'CFBundleName': 'Codex Token Dashboard',
+            'CFBundleDisplayName': 'Codex Token Dashboard',
+            'LSMinimumSystemVersion': '12.0',
+        },
+    )

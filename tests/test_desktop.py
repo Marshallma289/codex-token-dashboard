@@ -3,13 +3,27 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from urllib.request import urlopen
 
 from backend import DashboardDB
-from desktop import DesktopRuntime, dashboard_csv
+from desktop import DesktopRuntime, application_dir, dashboard_csv, desktop_gui, local_data_dir
 
 
 class DesktopTests(unittest.TestCase):
+    def test_mac_uses_cocoa_and_application_support(self):
+        with tempfile.TemporaryDirectory() as folder, patch("desktop.sys.platform", "darwin"), patch("desktop.Path.home", return_value=Path(folder)):
+            self.assertEqual(desktop_gui(), "cocoa")
+            self.assertEqual(local_data_dir(), Path(folder) / "Library" / "Application Support" / "CodexTokenDashboard")
+
+    def test_frozen_mac_finds_configuration_beside_app(self):
+        with patch("desktop.sys.platform", "darwin"), patch("desktop.sys.frozen", True, create=True), patch("desktop.sys.executable", "/Applications/CodexTokenDesktop.app/Contents/MacOS/CodexTokenDesktop"):
+            self.assertEqual(application_dir().name, "Applications")
+
+    def test_windows_keeps_webview2_renderer(self):
+        with patch("desktop.sys.platform", "win32"):
+            self.assertEqual(desktop_gui(), "edgechromium")
+
     def test_desktop_runtime_serves_polished_dashboard_and_filters(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

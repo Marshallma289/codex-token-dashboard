@@ -1,4 +1,4 @@
-"""Polished Windows desktop shell for the Codex Token Dashboard."""
+"""Native Windows and macOS shell for the Codex Token Dashboard."""
 from __future__ import annotations
 
 import csv
@@ -45,13 +45,28 @@ def dashboard_csv(rows: Iterable[Mapping[str, Any]]) -> str:
 
 def application_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
+        executable = Path(sys.executable).resolve()
+        if sys.platform == "darwin":
+            app_bundle = next((parent for parent in executable.parents if parent.suffix == ".app"), None)
+            if app_bundle is not None:
+                return app_bundle.parent
+        return executable.parent
     return Path(__file__).resolve().parent
 
 
 def local_data_dir() -> Path:
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "CodexTokenDashboard"
     base = Path(os.environ.get("LOCALAPPDATA", Path.home()))
     return base / "CodexTokenDashboard"
+
+
+def desktop_gui() -> str:
+    if sys.platform == "darwin":
+        return "cocoa"
+    if sys.platform == "win32":
+        return "edgechromium"
+    raise RuntimeError("桌面客户端仅支持 macOS 和 Windows")
 
 
 def _wait_for_webview_cleanup() -> None:
@@ -88,8 +103,13 @@ class DesktopRuntime:
         data_dir = local_data_dir()
         data_dir.mkdir(parents=True, exist_ok=True)
         if providers_path is None:
-            candidate = application_dir() / "providers.json"
-            providers_path = candidate if candidate.is_file() else None
+            providers_path = next(
+                (candidate for candidate in (
+                    local_data_dir() / "providers.json",
+                    application_dir() / "providers.json",
+                ) if candidate.is_file()),
+                None,
+            )
         self.database = database or DashboardDB(
             db_path or data_dir / "usage.sqlite3",
             providers_path=providers_path,
@@ -138,7 +158,7 @@ class DesktopBridge:
     def __init__(self) -> None:
         # pywebview exposes public attributes from ``js_api`` to JavaScript.
         # Keep the native window private; exposing it makes the bridge walker
-        # recursively inspect WinForms/WebView2 objects in frozen builds.
+        # recursively inspect native window objects in frozen builds.
         self._window: Any = None
         self._preferences_lock = threading.Lock()
 
@@ -205,12 +225,13 @@ def main() -> int:
     try:
         import webview
     except ImportError:
-        _show_startup_error("桌面组件尚未安装。请运行：py -m pip install -r requirements-desktop.txt")
+        _show_startup_error("桌面组件尚未安装。请运行：python3 -m pip install -r requirements-desktop.txt")
         return 1
 
     runtime: Optional[DesktopRuntime] = None
     try:
-        _wait_for_webview_cleanup()
+        if os.name == "nt":
+            _wait_for_webview_cleanup()
         runtime = DesktopRuntime()
         url = runtime.start()
         bridge = DesktopBridge()
@@ -229,7 +250,7 @@ def main() -> int:
             raise RuntimeError("无法创建客户端窗口")
         bridge.attach_window(window)
         webview.start(
-            gui="edgechromium",
+            gui=desktop_gui(),
             debug=False,
             # An isolated profile avoids carrying browser cache or credentials
             # inside the portable package.
@@ -242,7 +263,8 @@ def main() -> int:
     finally:
         if runtime is not None:
             runtime.stop()
-            _record_clean_exit()
+            if os.name == "nt":
+                _record_clean_exit()
 
 
 if __name__ == "__main__":

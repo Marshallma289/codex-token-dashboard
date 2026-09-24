@@ -1,5 +1,11 @@
 # Codex Token Dashboard
 
+## 1.3.0 更新
+
+- 桌面客户端现在支持 Windows 和 macOS，分别使用 WebView2 与系统 WebKit。
+- macOS 数据保存在 `~/Library/Application Support/CodexTokenDashboard/`，支持原生 CSV 保存窗口与主题偏好。
+- 新增 macOS `.app` 构建脚本、双击启动器和跨平台构建流程。macOS 包需在 Mac 上构建；Windows 包需在 Windows 上构建。
+
 ## 1.2.0 更新
 
 - 新增暖白 / 墨绿总览布局、版本标识与更清晰的指标层级。
@@ -23,9 +29,9 @@
 脚本先验证 Python 测试和前端语法，再在独立构建目录打包，生成带版本号的 ZIP
 及 `build-manifest.json` 文件校验清单。源码包不应包含 build、dist、缓存数据库或个人配置。
 
-## Windows 桌面客户端
+## Windows / macOS 桌面客户端
 
-现在默认启动独立桌面窗口，不打开外部浏览器。客户端使用 Windows WebView2 渲染精修后的本地界面，并在随机回环端口启动仅供该窗口使用的内部服务；不会对局域网开放。
+现在默认启动独立桌面窗口，不打开外部浏览器。Windows 客户端使用 WebView2，macOS 客户端使用系统 WebKit；两者均在随机回环端口启动仅供该窗口使用的内部服务，不会对局域网开放。
 
 桌面版与精修网页使用同一套现代卡片界面，支持浅色/深色主题、模型用量卡片、工作空间横条图、日活趋势、24 小时热力图、请求大小分布、悬浮精确提示和原生 CSV 保存窗口。
 
@@ -34,6 +40,7 @@
 - 供应商、工作空间和模型筛选全局联动且可直接相互切换，图表支持悬浮提示，CSV 导出当前筛选明细。
 - 桌面数据库保存在 `%LOCALAPPDATA%\CodexTokenDashboard\usage.sqlite3`，首次启动会从现有 Codex 日志重建统计，不修改日志。关闭窗口即可退出。
 - Windows 11 通常已包含 WebView2；免安装包不需要 Python。仅从源码运行桌面版时，先执行 `py -m pip install -r requirements-desktop.txt`。
+- macOS：从源码运行时安装 `requirements-desktop.txt`，然后执行 `python3 desktop.py` 或双击 `start-dashboard.command`；打包版使用 `CodexTokenDesktop.app`。构建和数据位置见 [macOS 使用说明](MACOS.md)。
 - 以下浏览器版说明作为可选模式保留；需要时运行 `python backend.py serve`。
 
 一个本地、实时、无遥测的 Codex Token 用量看板。它读取 Codex 自己写入的

@@ -43,7 +43,7 @@ class WindowsLauncherContractTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("Using Python", result.stdout)
+        self.assertRegex(result.stdout, r"Using (?:Codex bundled )?Python")
         self.assertIn('"status": "ok"', result.stdout)
 
 
