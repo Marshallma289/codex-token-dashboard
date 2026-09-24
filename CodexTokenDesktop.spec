@@ -60,5 +60,6 @@ if is_macos:
             'CFBundleName': 'Codex Token Dashboard',
             'CFBundleDisplayName': 'Codex Token Dashboard',
             'LSMinimumSystemVersion': '12.0',
+            'NSAppTransportSecurity': {'NSAllowsLocalNetworking': True},
         },
     )
